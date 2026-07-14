@@ -4,7 +4,6 @@ import sql from '@/app/lib/db';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@clerk/nextjs/server';
-import { mokedSendCartAction } from './mocks';
 import { stringToUuid } from '@/app/lib/utils';
 
 // ------------------------------------------------------------------
@@ -13,17 +12,27 @@ import { stringToUuid } from '@/app/lib/utils';
 
 const UpdateUserSchema = z.object({
   client_id: z.string(),
-  email: z.string(),
-  name: z.string().min(2).max(100),
-  phone: z.string().optional()
+  email: z.string().email('Formato de email inválido'),
+  name: z.string().min(2).max(100).regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo debe contener letras y espacios'),
+  phone: z.string().max(20, 'Máximo 20 caracteres').regex(/^\+?[0-9\s]*$/, 'Solo números y espacios permitidos').optional()
 });
 
 export type State = {
+  errors?: {
+    [key: string]: string[];
+  };
+  message?: string | null;
   success?: boolean;
   error?: string | null;
 };
 
 export async function updateUserAction(prevState: State | undefined, formData: FormData): Promise<State> {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) return { success: false, error: 'No autorizado' };
+
   const parsedData = UpdateUserSchema.safeParse({
     client_id: String(formData.get('client_id')),
     email: String(formData.get('email') || ''),
@@ -32,10 +41,19 @@ export async function updateUserAction(prevState: State | undefined, formData: F
   });
 
   if (!parsedData.success) {
-    return { success: false, error: 'Datos inválidos' };
+    return {
+      success: false,
+      errors: parsedData.error.flatten().fieldErrors,
+      message: 'Faltan campos o son inválidos. Por favor verifica tus datos.',
+      error: 'Datos inválidos'
+    };
   }
 
   const { client_id, email, name, phone } = parsedData.data;
+
+  if (client_id !== userId && !isAdmin) {
+    return { success: false, error: 'Acceso denegado' };
+  }
   try {
     await sql`
       UPDATE users
@@ -63,12 +81,18 @@ const UpdateAddressSchema = z.object({
   title: z.string().min(2).max(100),
   street: z.string().min(2).max(200),
   city: z.string().min(2).max(100),
-  lat: z.number(),
-  lng: z.number()
+  lat: z.number().min(-90, 'Latitud mínima es -90').max(90, 'Latitud máxima es 90'),
+  lng: z.number().min(-180, 'Longitud mínima es -180').max(180, 'Longitud máxima es 180')
 });
 const UpdateAddressSchemaWhitOutChecks = UpdateAddressSchema.partial({ address_id: true, client_id: true });
 
 export async function updateAddressAction(prevState: State | undefined, formData: FormData): Promise<State> {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) return { success: false, error: 'No autorizado' };
+
   const parsedData = UpdateAddressSchemaWhitOutChecks.safeParse({
     address_id: String(formData.get('address_id')),
     client_id: String(formData.get('client_id')),
@@ -80,10 +104,19 @@ export async function updateAddressAction(prevState: State | undefined, formData
   });
 
   if (!parsedData.success) {
-    return { success: false, error: 'Datos inválidos' };
+    return {
+      success: false,
+      errors: parsedData.error.flatten().fieldErrors,
+      message: 'Faltan campos o son inválidos. Por favor verifica tus datos.',
+      error: 'Datos inválidos'
+    };
   }
 
   const { address_id, client_id, title, street, city, lat, lng } = parsedData.data;
+
+  if (client_id !== userId && !isAdmin) {
+    return { success: false, error: 'Acceso denegado' };
+  }
   try {
     await sql`
       UPDATE addresses
@@ -107,11 +140,17 @@ const CreateAddressSchema = z.object({
   street: z.string().min(2).max(200),
   city: z.string().min(2).max(100),
   // Valores por defecto para lat/lng si no usamos un mapa interactivo para elegir
-  lat: z.number().optional().default(-38.7183),
-  lng: z.number().optional().default(-62.2663)
+  lat: z.number().min(-90, 'Latitud mínima es -90').max(90, 'Latitud máxima es 90').optional().default(-38.7183),
+  lng: z.number().min(-180, 'Longitud mínima es -180').max(180, 'Longitud máxima es 180').optional().default(-62.2663)
 });
 
 export async function createAddressAction(prevState: State | undefined, formData: FormData): Promise<State> {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) return { success: false, error: 'No autorizado' };
+
   const parsedData = CreateAddressSchema.safeParse({
     client_id: String(formData.get('client_id')),
     title: String(formData.get('title') || ''),
@@ -122,10 +161,19 @@ export async function createAddressAction(prevState: State | undefined, formData
   });
 
   if (!parsedData.success) {
-    return { success: false, error: 'Datos de dirección inválidos' };
+    return {
+      success: false,
+      errors: parsedData.error.flatten().fieldErrors,
+      message: 'Faltan campos o son inválidos. Por favor verifica tus datos.',
+      error: 'Datos de dirección inválidos'
+    };
   }
 
   const { client_id, title, street, city, lat, lng } = parsedData.data;
+
+  if (client_id !== userId && !isAdmin) {
+    return { success: false, error: 'Acceso denegado' };
+  }
 
   try {
     await sql`
@@ -144,6 +192,13 @@ export async function createAddressAction(prevState: State | undefined, formData
 }
 
 export async function deleteAddressAction(address_id: string, client_id: string) {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) throw new Error('No autorizado');
+  if (client_id !== userId && !isAdmin) throw new Error('Acceso denegado');
+
   try {
     await sql`
       DELETE FROM addresses 
@@ -233,9 +288,6 @@ export async function sendCartAction({ addressId, items }: { addressId: string; 
     // Construir el Payload (Delegado a la función helper)
     const payload = buildSellerPayload(addr, userInfo, userId, items);
 
-    // Consumir API del Vendedor (Mock o Real dinámicamente)
-    const isMocking = process.env.USE_MOCKS === 'true';
-
     // Validación de regla de negocio (Una sola compra activa)
     const activePurchases = await sql`
       SELECT purchase_id FROM purchases 
@@ -246,13 +298,13 @@ export async function sendCartAction({ addressId, items }: { addressId: string; 
       throw new Error('ACTIVE_PURCHASE_EXISTS');
     }
 
-    const resp = isMocking
-      ? await mokedSendCartAction(items, payload.stores)
-      : await realSendCartAction(payload, token);
+    // Consumir API del Vendedor
+    const resp = await realSendCartAction(payload, token);
 
     if (!resp.ok) {
       const text = await resp.text().catch(() => '');
-      throw new Error(`Seller API error: ${resp.status} ${text}`);
+      console.error(`Seller API error: ${resp.status} ${text}`);
+      throw new Error('No se pudo procesar la orden con el vendedor');
     }
 
     const data = await resp.json();
@@ -263,9 +315,7 @@ export async function sendCartAction({ addressId, items }: { addressId: string; 
     // Calcular URL de redirección
     const externalPaymentsUrl = process.env.PAYMENTS_APP_URL;
 
-    const redirectUrl = isMocking
-      ? `/payments/${purchaseId}` // Va a tu pasarela simulada (que luego ejecuta simulatePaymentSuccess)
-      : `${externalPaymentsUrl}/checkout/${purchaseId}`; // Redirige a la app externa real de Payments
+    const redirectUrl = `${externalPaymentsUrl}/checkout/${purchaseId}`; // Redirige a la app externa real de Payments
 
     // Devolvemos la URL al cliente
     return { sellerResponse: data, purchaseId, redirectUrl };
@@ -317,41 +367,25 @@ async function createOrderInDB(userId: string, addressId: string, data: any) {
   return purchaseId;
 }
 
-// Función de ayuda para simular el llamado a Payments en modo mock (Solo para desarrollo local o pruebas)
-export async function simulatePaymentStatusUpdate(purchaseId: string, status: 'PAID' | 'CANCELLED') {
-  try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-    const response = await fetch(`${appUrl}/api/purchases/${purchaseId}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BUYER_SERVICE_SECRET}`
-      },
-      body: JSON.stringify({ status })
-    });
-
-    // Validamos primero si la respuesta falló
-    if (!response.ok) {
-      const errorText = await response.text(); // Leemos como texto por si es un HTML de error
-      console.error('El webhook devolvió un error de servidor:', errorText);
-      throw new Error(`Fallo en el Webhook (${response.status}): Ver logs del servidor.`);
-    }
-
-    const result = await response.json();
-    console.log(`[Sandbox Payments] Webhook ejecutado con éxito:`, result.message);
-
-    revalidatePath('/purchase');
-    return { success: true };
-
-  } catch (error) {
-    console.error('Error en el simulador de pagos:', error);
-    throw new Error('No se pudo procesar la simulación de estado');
-  }
-}
 
 export async function cancelDeliveryAction(orderId: string) {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) throw new Error('No autorizado');
+
   try {
+    // Verificar propiedad de la orden
+    const rows = await sql`
+      SELECT p.client_id
+      FROM orders o
+      JOIN purchases p ON o.purchase_id = p.purchase_id
+      WHERE o.order_id = ${orderId}
+    `;
+    
+    if (rows.length === 0) throw new Error('Orden no encontrada');
+    if (rows[0].client_id !== userId && !isAdmin) throw new Error('Acceso denegado');
     const deliveryUrl = process.env.DELIVERY_APP_URL;
     const response = await fetch(`${deliveryUrl}/api/deliveries/${orderId}/cancel`, {
       method: 'POST',

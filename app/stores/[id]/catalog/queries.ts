@@ -1,5 +1,4 @@
 import { auth } from '@clerk/nextjs/server';
-import { fetchMockCatalog } from '@/app/lib/mocks';
 import { Product, CatalogResponse } from '@/app/lib/definitions';
 
 async function realFetchCatalog(storeId: string, token: string | null) {
@@ -13,16 +12,13 @@ async function realFetchCatalog(storeId: string, token: string | null) {
 }
 
 export async function fetchCatalog(storeId: string): Promise<CatalogResponse> {
-  const isMocking = process.env.USE_MOCKS === 'true'; // Variable de entorno
-
-
   const { getToken } = await auth();
   const token = await getToken();
 
   if (!token) throw new Error('No estás autenticado');
 
   try {
-    const response = isMocking ? await fetchMockCatalog(storeId) : await realFetchCatalog(storeId, token);
+    const response = await realFetchCatalog(storeId, token);
 
     if (!response.ok) throw new Error(`Error al obtener catálogo: ${response.status}`);
     

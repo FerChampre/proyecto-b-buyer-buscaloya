@@ -37,15 +37,28 @@ Para facilitar la corrección y evaluación de las diferentes funcionalidades se
 
 ---
 
-## Características Principales
+## 💻 Stack Tecnológico
+* **Frontend:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS v4.
+* **Backend:** Server Actions (Next.js), Zod para validación de esquemas y datos.
+* **Base de Datos:** PostgreSQL en entorno Serverless utilizando Neon.
+* **Eventos en Tiempo Real:** PostgreSQL `LISTEN/NOTIFY` combinado con Server-Sent Events (SSE).
+* **Autenticación:** Clerk.
+* **Mapas:** Mapbox GL y MapLibre GL.
 
-* **Autenticación Segura:** Control de accesos y flujos de usuarios integrado con Clerk.
-* **Navegación Dinámica por Roles:** Layout inteligente que adapta los menús (`Tiendas`, `Mi Compra`, `Mi Perfil` o `Panel Admin`) según el tipo de usuario logueado. Si el usuario está logueado se habilita la navegación a `/stores`, `/purchase` y a`/user` y si además el usuario tiene rol de `system_admin` en la metadata se habilita `/admin/users`.
-* **Gestión de Direcciones Interactiva:** Integración con Mapbox y `next/dynamic` para la selección y autocompletado de ubicaciones mediante mapas en tiempo real sin afectar el rendimiento del servidor.
-* **Ciclo de Vida y Tracking de Pedidos:** Seguimiento de todos los paquetes de la compra. Además, cuando el pedido pasa al estado `OUT_FOR_DELIVERY` (En camino), se integra un mapa interactivo utilizando **MapLibre GL** que permite al usuario visualizar en tiempo real la localización de la tienda, su domicilio y el recorrido del repartidor.
-* **Consumo de API Externa (Clima en Tiempo Real):** Integración mediante `fetch` nativo con el servicio de *WeatherAPI.com* desde el servidor. El sistema procesa la respuesta JSON del clima actual de la ciudad y modifica dinámicamente la interfaz de usuario en `/stores`, alertando a los clientes sobre posibles demoras en la logística de envíos si se detectan condiciones climáticas adversas (como lluvia o tormentas). Para demostrar que funciona siempre se incluyó el aviso también en caso de buen clima.
-* **Conectividad con Webapps del Proyecto (Arquitectura Híbrida):** Se desarrolló el consumo e integración de datos con las APIs externas de las otras aplicaciones del equipo. Para garantizar la estabilidad de la aplicación durante la evaluación independientemente de la disponibilidad de servidores externos, se implementó una arquitectura basada en variables de entorno: configurando `USE_MOCKS="true"`, el sistema conmuta automáticamente hacia respuestas *mockeadas* que emulan con total precisión los contratos de los endpoints reales.
-También para esta etapa implementó una interfaz dedicada para simular el comportamiento de una plataforma de pagos externa. El usuario es redirigido a una página donde puede forzar la **aprobación** o la **cancelación** del pago, garantizando el testeo completo de los flujos alternativos del sistema.  
+---
+
+## 🚀 Características Principales
+
+* **Arquitectura en Tiempo Real Avanzada (SSE):** El seguimiento del estado de los pedidos no utiliza *polling* tradicional, sino que está conectado a un flujo de Server-Sent Events (SSE) originado por un trigger nativo de PostgreSQL (`LISTEN/NOTIFY`). Esto garantiza actualizaciones de la interfaz en milisegundos sin sobrecargar el servidor.
+* **Autenticación Segura y RBAC:** Control de accesos y flujos de usuarios integrado con Clerk, garantizando que ciertas rutas (`/admin/users`) queden estrictamente reservadas para usuarios con el rol `system_admin`.
+* **Navegación Dinámica por Roles:** Layout inteligente que adapta los menús y vistas (`Tiendas`, `Mi Compra`, `Mi Perfil` o `Panel Admin`) según la autenticación del tipo de usuario logueado.
+* **Seguridad y Validación Server-Side:** La aplicación protege contra vulnerabilidades web clásicas. Utiliza `Zod` para validar fuertemente toda entrada de usuario (evitando datos corruptos en el registro/edición), previene inyección SQL gracias al driver de Neon y valida exhaustivamente la propiedad de las compras a nivel de Base de Datos para evitar ataques IDOR.
+* **Manejo de Errores Resiliente:** Integración nativa de `Error Boundaries` de Next.js (`error.tsx`, `global-error.tsx`, y `not-found.tsx`). La plataforma previene la caída total de la aplicación ante excepciones críticas y ofrece al usuario flujos de recuperación ("Retry") manteniendo un diseño estético coherente con la marca.
+* **UX/UI Premium y Rendimiento:** La interfaz está construida enfocándose en el "Efecto Wow" comercial. Utiliza un panel de control "Dashboard" inmersivo, *Glassmorphism*, e implementa esqueletos de carga animados (`loading.tsx` y Suspense) garantizando una experiencia sin bloqueos (FCP rápido).
+* **Gestión de Direcciones Interactiva:** Integración asíncrona con Mapbox y `next/dynamic` para la selección y autocompletado geográfico de ubicaciones mediante mapas sin afectar el rendimiento principal de Next.js.
+* **Live Tracking con MapLibre GL:** Cuando el pedido pasa al estado `OUT_FOR_DELIVERY` (En camino), se renderiza un mapa dinámico con telemetría que permite al usuario visualizar en tiempo real la ruta del repartidor desde la tienda hasta su domicilio.
+* **Consumo de APIs Externas:** Integración dinámica con el servicio de *WeatherAPI.com* para procesar el clima actual de la ciudad y modificar la interfaz, alertando a los clientes sobre posibles demoras logísticas por clima adverso.
+* **Conectividad de Microservicios:** Se desarrolló el consumo e integración de datos real en vivo con las APIs externas de las otras aplicaciones del ecosistema B2C (Seller, Delivery, Payments).  
 ---
 
 Enunciado completo: <https://iaw-2026.github.io/proyecto/>

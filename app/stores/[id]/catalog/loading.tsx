@@ -1,24 +1,47 @@
 export default function Loading() {
   return (
-    <main className="max-w-7xl mx-auto p-6">
-      <div className="mb-8">
-        <div className="h-4 bg-gray-200 rounded w-32 mb-6 animate-pulse"></div>
-        <div className="h-8 bg-gray-200 rounded w-64 mb-2 animate-pulse"></div>
-        <div className="h-4 bg-gray-200 rounded w-48 animate-pulse"></div>
+    <main className="max-w-7xl mx-auto p-6 animate-pulse">
+      {/* Store Header Info Skeleton */}
+      <div className="mb-10 bg-white p-6 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row gap-6 items-start md:items-center">
+        <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-rose-100 rounded-2xl flex-shrink-0"></div>
+        <div className="flex-1">
+          <div className="h-8 bg-gray-200 rounded-md w-48 mb-3"></div>
+          <div className="h-4 bg-gray-100 rounded-md w-72 mb-2"></div>
+          <div className="h-4 bg-gray-100 rounded-md w-64"></div>
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white border rounded-xl overflow-hidden shadow-sm h-[380px] flex flex-col animate-pulse">
-            <div className="h-48 bg-gray-200 w-full"></div>
-            <div className="p-5 flex flex-col flex-grow">
-              <div className="flex justify-between mb-4">
-                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+      {/* Categories / Filters Skeleton */}
+      <div className="mb-8 flex gap-3 overflow-x-hidden">
+         {[1, 2, 3, 4, 5].map(i => (
+           <div key={i} className="h-10 w-24 bg-gray-200 rounded-full flex-shrink-0"></div>
+         ))}
+      </div>
+
+      {/* Catalog Grid Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm flex flex-row h-36 sm:h-40">
+            {/* Image placeholder */}
+            <div className="w-1/3 min-w-[110px] max-w-[140px] bg-gradient-to-br from-gray-200 via-rose-50 to-gray-100 relative flex-shrink-0"></div>
+            
+            {/* Content Placeholder */}
+            <div className="p-3 sm:p-4 flex flex-col flex-grow justify-between min-w-0">
+              <div>
+                 <div className="flex justify-between items-start mb-2">
+                   <div className="h-5 sm:h-6 bg-gray-200 rounded-md w-2/3"></div>
+                   <div className="h-5 sm:h-6 bg-gray-200 rounded-md w-16"></div>
+                 </div>
+                 <div className="h-3 sm:h-4 bg-gray-100 rounded-md w-full mb-1 mt-2"></div>
+                 <div className="h-3 sm:h-4 bg-gray-100 rounded-md w-4/5"></div>
               </div>
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-4/5 mb-auto"></div>
-              <div className="h-10 bg-gray-200 rounded w-full mt-4"></div>
+              
+              <div className="mt-2 flex justify-end">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-100"></div>
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-100"></div>
+                </div>
+              </div>
             </div>
           </div>
         ))}
