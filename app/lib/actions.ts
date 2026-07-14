@@ -18,6 +18,10 @@ const UpdateUserSchema = z.object({
 });
 
 export type State = {
+  errors?: {
+    [key: string]: string[];
+  };
+  message?: string | null;
   success?: boolean;
   error?: string | null;
 };
@@ -37,7 +41,12 @@ export async function updateUserAction(prevState: State | undefined, formData: F
   });
 
   if (!parsedData.success) {
-    return { success: false, error: 'Datos inválidos' };
+    return {
+      success: false,
+      errors: parsedData.error.flatten().fieldErrors,
+      message: 'Faltan campos o son inválidos. Por favor verifica tus datos.',
+      error: 'Datos inválidos'
+    };
   }
 
   const { client_id, email, name, phone } = parsedData.data;
@@ -95,7 +104,12 @@ export async function updateAddressAction(prevState: State | undefined, formData
   });
 
   if (!parsedData.success) {
-    return { success: false, error: 'Datos inválidos' };
+    return {
+      success: false,
+      errors: parsedData.error.flatten().fieldErrors,
+      message: 'Faltan campos o son inválidos. Por favor verifica tus datos.',
+      error: 'Datos inválidos'
+    };
   }
 
   const { address_id, client_id, title, street, city, lat, lng } = parsedData.data;
@@ -147,7 +161,12 @@ export async function createAddressAction(prevState: State | undefined, formData
   });
 
   if (!parsedData.success) {
-    return { success: false, error: 'Datos de dirección inválidos' };
+    return {
+      success: false,
+      errors: parsedData.error.flatten().fieldErrors,
+      message: 'Faltan campos o son inválidos. Por favor verifica tus datos.',
+      error: 'Datos de dirección inválidos'
+    };
   }
 
   const { client_id, title, street, city, lat, lng } = parsedData.data;

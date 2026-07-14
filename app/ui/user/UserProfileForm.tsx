@@ -17,8 +17,16 @@ export function UserProfileForm({ user }: { user: any }) {
           name="name"
           type="text" 
           defaultValue={user.name} 
+          aria-describedby="name-error"
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-rose-500 focus:ring-rose-500 focus:outline-none" 
         />
+        {state?.errors?.name && (
+          <div id="name-error" aria-live="polite" className="mt-2 text-sm text-red-500">
+            {state.errors.name.map((error: string) => (
+              <p key={error}>{error}</p>
+            ))}
+          </div>
+        )}
       </div>
       
       <div>
@@ -39,11 +47,21 @@ export function UserProfileForm({ user }: { user: any }) {
           name="phone"
           type="tel" 
           defaultValue={user.phone || ''} 
+          aria-describedby="phone-error"
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-rose-500 focus:ring-rose-500 focus:outline-none" 
         />
+        {state?.errors?.phone && (
+          <div id="phone-error" aria-live="polite" className="mt-2 text-sm text-red-500">
+            {state.errors.phone.map((error: string) => (
+              <p key={error}>{error}</p>
+            ))}
+            <p className="text-xs text-gray-500 mt-1">Ejemplo válido: +54 9 11 1234 5678</p>
+          </div>
+        )}
       </div>
       
-      {state?.error && <p className="text-red-500 text-sm font-medium">{state.error}</p>}
+      {state?.message && <p className="text-red-500 text-sm font-medium">{state.message}</p>}
+      {state?.error && !state?.message && <p className="text-red-500 text-sm font-medium">{state.error}</p>}
       {state?.success && <p className="text-green-600 text-sm font-medium">Cambios guardados correctamente.</p>}
       
       <div className="pt-4 border-t border-gray-100">
