@@ -23,6 +23,12 @@ export type State = {
 };
 
 export async function updateUserAction(prevState: State | undefined, formData: FormData): Promise<State> {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) return { success: false, error: 'No autorizado' };
+
   const parsedData = UpdateUserSchema.safeParse({
     client_id: String(formData.get('client_id')),
     email: String(formData.get('email') || ''),
@@ -35,6 +41,10 @@ export async function updateUserAction(prevState: State | undefined, formData: F
   }
 
   const { client_id, email, name, phone } = parsedData.data;
+
+  if (client_id !== userId && !isAdmin) {
+    return { success: false, error: 'Acceso denegado' };
+  }
   try {
     await sql`
       UPDATE users
@@ -68,6 +78,12 @@ const UpdateAddressSchema = z.object({
 const UpdateAddressSchemaWhitOutChecks = UpdateAddressSchema.partial({ address_id: true, client_id: true });
 
 export async function updateAddressAction(prevState: State | undefined, formData: FormData): Promise<State> {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) return { success: false, error: 'No autorizado' };
+
   const parsedData = UpdateAddressSchemaWhitOutChecks.safeParse({
     address_id: String(formData.get('address_id')),
     client_id: String(formData.get('client_id')),
@@ -83,6 +99,10 @@ export async function updateAddressAction(prevState: State | undefined, formData
   }
 
   const { address_id, client_id, title, street, city, lat, lng } = parsedData.data;
+
+  if (client_id !== userId && !isAdmin) {
+    return { success: false, error: 'Acceso denegado' };
+  }
   try {
     await sql`
       UPDATE addresses
@@ -111,6 +131,12 @@ const CreateAddressSchema = z.object({
 });
 
 export async function createAddressAction(prevState: State | undefined, formData: FormData): Promise<State> {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) return { success: false, error: 'No autorizado' };
+
   const parsedData = CreateAddressSchema.safeParse({
     client_id: String(formData.get('client_id')),
     title: String(formData.get('title') || ''),
@@ -125,6 +151,10 @@ export async function createAddressAction(prevState: State | undefined, formData
   }
 
   const { client_id, title, street, city, lat, lng } = parsedData.data;
+
+  if (client_id !== userId && !isAdmin) {
+    return { success: false, error: 'Acceso denegado' };
+  }
 
   try {
     await sql`
@@ -143,6 +173,13 @@ export async function createAddressAction(prevState: State | undefined, formData
 }
 
 export async function deleteAddressAction(address_id: string, client_id: string) {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) throw new Error('No autorizado');
+  if (client_id !== userId && !isAdmin) throw new Error('Acceso denegado');
+
   try {
     await sql`
       DELETE FROM addresses 
@@ -313,7 +350,23 @@ async function createOrderInDB(userId: string, addressId: string, data: any) {
 
 
 export async function cancelDeliveryAction(orderId: string) {
+  const authSession = await auth();
+  const userId = authSession.userId;
+  const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
+
+  if (!userId) throw new Error('No autorizado');
+
   try {
+    // Verificar propiedad de la orden
+    const rows = await sql`
+      SELECT p.client_id
+      FROM orders o
+      JOIN purchases p ON o.purchase_id = p.purchase_id
+      WHERE o.order_id = ${orderId}
+    `;
+    
+    if (rows.length === 0) throw new Error('Orden no encontrada');
+    if (rows[0].client_id !== userId && !isAdmin) throw new Error('Acceso denegado');
     const deliveryUrl = process.env.DELIVERY_APP_URL;
     const response = await fetch(`${deliveryUrl}/api/deliveries/${orderId}/cancel`, {
       method: 'POST',
