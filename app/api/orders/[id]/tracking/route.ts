@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { stringToUuid } from '@/app/lib/utils';
+import sql from '@/app/lib/db';
 
 export async function GET(
   req: Request,
@@ -15,9 +16,27 @@ export async function GET(
 
     const { id } = await params;
     const orderId = id;
+    const orderUuid = stringToUuid(id);
+    
+    // 2. Validar que la orden pertenece al usuario autenticado (Prevención de IDOR)
+    const ownershipCheck = await sql`
+      SELECT p.client_id 
+      FROM orders o
+      JOIN purchases p ON o.purchase_id = p.purchase_id
+      WHERE o.order_id = ${orderUuid}
+    `;
+
+    if (ownershipCheck.length === 0) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (ownershipCheck[0].client_id !== userId) {
+      return NextResponse.json({ error: 'Forbidden: You do not have access to this order' }, { status: 403 });
+    }
+
     const deliveryServiceUrl = process.env.DELIVERY_APP_URL;
 
-    // 2. Consumimos el endpoint oficial de la Delivery App
+    // 3. Consumimos el endpoint oficial de la Delivery App
     const response = await fetch(`${deliveryServiceUrl}/api/deliveries/${orderId}/tracking`, {
       method: 'GET',
       headers: {
@@ -35,7 +54,7 @@ export async function GET(
 
     const data = await response.json();
 
-    // 3. Devolvemos la respuesta exacta al frontend
+    // 4. Devolvemos la respuesta exacta al frontend
     return NextResponse.json(data);
 
   } catch (error) {
