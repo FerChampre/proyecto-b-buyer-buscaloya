@@ -1,12 +1,28 @@
 export default function Loading() {
   return (
-    <main className="max-w-7xl mx-auto p-6">
-      <div className="flex flex-col items-center justify-center py-12">
-        <svg className="animate-spin h-8 w-8 text-gray-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-        </svg>
-        <p className="text-gray-500 mt-4">Cargando negocios...</p>
+    <main className="max-w-7xl mx-auto p-6 animate-pulse">
+      {/* Titulo Placeholder */}
+      <div className="mb-8">
+        <div className="h-8 bg-gray-200 rounded-md w-64 mb-4"></div>
+        <div className="h-4 bg-gray-100 rounded-md w-96"></div>
+      </div>
+
+      {/* Stores Grid Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm flex flex-row items-center p-4 gap-4 h-[144px]">
+            {/* Image Placeholder */}
+            <div className="h-24 w-24 sm:h-28 sm:w-28 bg-gradient-to-br from-gray-200 via-rose-50 to-gray-100 rounded-xl flex-shrink-0 relative"></div>
+            
+            {/* Content Placeholder */}
+            <div className="flex flex-col flex-grow min-w-0">
+              <div className="h-6 bg-gray-200 rounded-md w-3/4 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded-md w-1/4 mb-2"></div>
+              <div className="h-4 bg-gray-100 rounded-md w-full mb-1"></div>
+              <div className="h-4 bg-gray-100 rounded-md w-5/6"></div>
+            </div>
+          </div>
+        ))}
       </div>
     </main>
   );
