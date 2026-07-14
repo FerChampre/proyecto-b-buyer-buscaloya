@@ -12,9 +12,9 @@ import { stringToUuid } from '@/app/lib/utils';
 
 const UpdateUserSchema = z.object({
   client_id: z.string(),
-  email: z.string(),
+  email: z.string().email('Formato de email inválido'),
   name: z.string().min(2).max(100),
-  phone: z.string().optional()
+  phone: z.string().max(20, 'Máximo 20 caracteres').regex(/^\+?[0-9\s]*$/, 'Solo números y espacios permitidos').optional()
 });
 
 export type State = {
@@ -72,8 +72,8 @@ const UpdateAddressSchema = z.object({
   title: z.string().min(2).max(100),
   street: z.string().min(2).max(200),
   city: z.string().min(2).max(100),
-  lat: z.number(),
-  lng: z.number()
+  lat: z.number().min(-90, 'Latitud mínima es -90').max(90, 'Latitud máxima es 90'),
+  lng: z.number().min(-180, 'Longitud mínima es -180').max(180, 'Longitud máxima es 180')
 });
 const UpdateAddressSchemaWhitOutChecks = UpdateAddressSchema.partial({ address_id: true, client_id: true });
 
@@ -126,8 +126,8 @@ const CreateAddressSchema = z.object({
   street: z.string().min(2).max(200),
   city: z.string().min(2).max(100),
   // Valores por defecto para lat/lng si no usamos un mapa interactivo para elegir
-  lat: z.number().optional().default(-38.7183),
-  lng: z.number().optional().default(-62.2663)
+  lat: z.number().min(-90, 'Latitud mínima es -90').max(90, 'Latitud máxima es 90').optional().default(-38.7183),
+  lng: z.number().min(-180, 'Longitud mínima es -180').max(180, 'Longitud máxima es 180').optional().default(-62.2663)
 });
 
 export async function createAddressAction(prevState: State | undefined, formData: FormData): Promise<State> {
