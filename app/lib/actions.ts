@@ -247,7 +247,8 @@ export async function sendCartAction({ addressId, items }: { addressId: string; 
 
     if (!resp.ok) {
       const text = await resp.text().catch(() => '');
-      throw new Error(`Seller API error: ${resp.status} ${text}`);
+      console.error(`Seller API error: ${resp.status} ${text}`);
+      throw new Error('No se pudo procesar la orden con el vendedor');
     }
 
     const data = await resp.json();
