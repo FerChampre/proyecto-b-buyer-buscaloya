@@ -4,7 +4,6 @@ import sql from '@/app/lib/db';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@clerk/nextjs/server';
-import { mokedSendCartAction } from './mocks';
 import { stringToUuid } from '@/app/lib/utils';
 
 // ------------------------------------------------------------------
@@ -233,9 +232,6 @@ export async function sendCartAction({ addressId, items }: { addressId: string; 
     // Construir el Payload (Delegado a la función helper)
     const payload = buildSellerPayload(addr, userInfo, userId, items);
 
-    // Consumir API del Vendedor (Mock o Real dinámicamente)
-    const isMocking = process.env.USE_MOCKS === 'true';
-
     // Validación de regla de negocio (Una sola compra activa)
     const activePurchases = await sql`
       SELECT purchase_id FROM purchases 
@@ -246,9 +242,8 @@ export async function sendCartAction({ addressId, items }: { addressId: string; 
       throw new Error('ACTIVE_PURCHASE_EXISTS');
     }
 
-    const resp = isMocking
-      ? await mokedSendCartAction(items, payload.stores)
-      : await realSendCartAction(payload, token);
+    // Consumir API del Vendedor
+    const resp = await realSendCartAction(payload, token);
 
     if (!resp.ok) {
       const text = await resp.text().catch(() => '');
@@ -263,9 +258,7 @@ export async function sendCartAction({ addressId, items }: { addressId: string; 
     // Calcular URL de redirección
     const externalPaymentsUrl = process.env.PAYMENTS_APP_URL;
 
-    const redirectUrl = isMocking
-      ? `/payments/${purchaseId}` // Va a tu pasarela simulada (que luego ejecuta simulatePaymentSuccess)
-      : `${externalPaymentsUrl}/checkout/${purchaseId}`; // Redirige a la app externa real de Payments
+    const redirectUrl = `${externalPaymentsUrl}/checkout/${purchaseId}`; // Redirige a la app externa real de Payments
 
     // Devolvemos la URL al cliente
     return { sellerResponse: data, purchaseId, redirectUrl };
@@ -317,38 +310,6 @@ async function createOrderInDB(userId: string, addressId: string, data: any) {
   return purchaseId;
 }
 
-// Función de ayuda para simular el llamado a Payments en modo mock (Solo para desarrollo local o pruebas)
-export async function simulatePaymentStatusUpdate(purchaseId: string, status: 'PAID' | 'CANCELLED') {
-  try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-    const response = await fetch(`${appUrl}/api/purchases/${purchaseId}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BUYER_SERVICE_SECRET}`
-      },
-      body: JSON.stringify({ status })
-    });
-
-    // Validamos primero si la respuesta falló
-    if (!response.ok) {
-      const errorText = await response.text(); // Leemos como texto por si es un HTML de error
-      console.error('El webhook devolvió un error de servidor:', errorText);
-      throw new Error(`Fallo en el Webhook (${response.status}): Ver logs del servidor.`);
-    }
-
-    const result = await response.json();
-    console.log(`[Sandbox Payments] Webhook ejecutado con éxito:`, result.message);
-
-    revalidatePath('/purchase');
-    return { success: true };
-
-  } catch (error) {
-    console.error('Error en el simulador de pagos:', error);
-    throw new Error('No se pudo procesar la simulación de estado');
-  }
-}
 
 export async function cancelDeliveryAction(orderId: string) {
   try {
