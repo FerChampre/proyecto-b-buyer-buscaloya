@@ -13,11 +13,15 @@ import { stringToUuid } from '@/app/lib/utils';
 const UpdateUserSchema = z.object({
   client_id: z.string(),
   email: z.string().email('Formato de email inválido'),
-  name: z.string().min(2).max(100),
+  name: z.string().min(2).max(100).regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo debe contener letras y espacios'),
   phone: z.string().max(20, 'Máximo 20 caracteres').regex(/^\+?[0-9\s]*$/, 'Solo números y espacios permitidos').optional()
 });
 
 export type State = {
+  errors?: {
+    [key: string]: string[];
+  };
+  message?: string | null;
   success?: boolean;
   error?: string | null;
 };
@@ -37,7 +41,12 @@ export async function updateUserAction(prevState: State | undefined, formData: F
   });
 
   if (!parsedData.success) {
-    return { success: false, error: 'Datos inválidos' };
+    return {
+      success: false,
+      errors: parsedData.error.flatten().fieldErrors,
+      message: 'Faltan campos o son inválidos. Por favor verifica tus datos.',
+      error: 'Datos inválidos'
+    };
   }
 
   const { client_id, email, name, phone } = parsedData.data;
@@ -95,7 +104,12 @@ export async function updateAddressAction(prevState: State | undefined, formData
   });
 
   if (!parsedData.success) {
-    return { success: false, error: 'Datos inválidos' };
+    return {
+      success: false,
+      errors: parsedData.error.flatten().fieldErrors,
+      message: 'Faltan campos o son inválidos. Por favor verifica tus datos.',
+      error: 'Datos inválidos'
+    };
   }
 
   const { address_id, client_id, title, street, city, lat, lng } = parsedData.data;
@@ -147,7 +161,12 @@ export async function createAddressAction(prevState: State | undefined, formData
   });
 
   if (!parsedData.success) {
-    return { success: false, error: 'Datos de dirección inválidos' };
+    return {
+      success: false,
+      errors: parsedData.error.flatten().fieldErrors,
+      message: 'Faltan campos o son inválidos. Por favor verifica tus datos.',
+      error: 'Datos de dirección inválidos'
+    };
   }
 
   const { client_id, title, street, city, lat, lng } = parsedData.data;

@@ -26,6 +26,7 @@ export default function AddressManager({ clientId, initialAddresses }: AddressMa
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   // Unificamos el estado del formulario para controlar los inputs dinámicamente
   const [formLocation, setFormLocation] = useState({
@@ -38,6 +39,7 @@ export default function AddressManager({ clientId, initialAddresses }: AddressMa
   const handleOpenModal = (address?: Address) => {
     setEditingAddress(address || null);
     setError(null);
+    setFieldErrors({});
     
     // Si estamos editando, precargamos los datos; si no, usamos los valores por defecto
     setFormLocation({
@@ -53,6 +55,8 @@ export default function AddressManager({ clientId, initialAddresses }: AddressMa
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingAddress(null);
+    setFieldErrors({});
+    setError(null);
   };
 
   const handleDelete = async (addressId: string) => {
@@ -84,6 +88,7 @@ export default function AddressManager({ clientId, initialAddresses }: AddressMa
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setFieldErrors({});
 
     const formData = new FormData(e.currentTarget);
     formData.append('client_id', clientId);
@@ -103,7 +108,8 @@ export default function AddressManager({ clientId, initialAddresses }: AddressMa
       handleCloseModal();
       router.refresh();
     } else {
-      setError(result.error || 'Ocurrió un error inesperado');
+      setError(result.message || result.error || 'Ocurrió un error inesperado');
+      setFieldErrors(result.errors || {});
     }
     
     setLoading(false);
@@ -181,8 +187,17 @@ export default function AddressManager({ clientId, initialAddresses }: AddressMa
                   defaultValue={editingAddress?.title} 
                   required
                   placeholder="Ej: Mi Casa"
+                  aria-describedby="title-error"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 focus:outline-none transition-shadow"
                 />
+                {fieldErrors.title && (
+                  <div id="title-error" aria-live="polite" className="mt-2 text-sm text-red-500">
+                    {fieldErrors.title.map((err) => (
+                      <p key={err}>{err}</p>
+                    ))}
+                    <p className="text-xs text-gray-500 mt-1">Ejemplos: Casa, Trabajo, Casa de mi madre</p>
+                  </div>
+                )}
               </div>
 
               {/* Integración del Mapa Interactivo Mapbox */}
@@ -192,6 +207,12 @@ export default function AddressManager({ clientId, initialAddresses }: AddressMa
                   initialLng={formLocation.lng} 
                   onLocationSelect={handleLocationSelect}
                 />
+                {(fieldErrors.lat || fieldErrors.lng || fieldErrors.street || fieldErrors.city) && (
+                  <div className="mt-3 text-sm text-red-500">
+                    <p>La ubicación seleccionada es inválida o incompleta.</p>
+                    <p className="text-xs text-gray-500 mt-1">Ejemplo válido: Busca "Calle San Martín 100, Bahía Blanca" en el autocompletado y selecciónalo.</p>
+                  </div>
+                )}
               </div>
               
               {/* Inputs de solo lectura, se llenan desde el mapa */}
