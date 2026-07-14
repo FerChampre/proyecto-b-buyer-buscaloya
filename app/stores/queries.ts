@@ -1,6 +1,5 @@
 // server
 import { auth } from '@clerk/nextjs/server';
-import { fetchMockStores } from '@/app/lib/mocks';
 import { Store } from '@/app/lib/definitions';
 
 const ITEMS_PER_PAGE = 5;
@@ -26,8 +25,7 @@ async function fetchAllStoresFromSeller() {
 }
 
 export async function fetchStoresWithMeta(currentPage: number, search?: string) {
-  const isMocking = process.env.USE_MOCKS === 'true'; // Variable de entorno
-  const all = isMocking ? await fetchMockStores() : await fetchAllStoresFromSeller();
+  const all = await fetchAllStoresFromSeller();
   const filtered = applySearch(all, search);
   const totalStores = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalStores / ITEMS_PER_PAGE));
