@@ -20,15 +20,40 @@ export default function PurchaseTracker({ purchase, packages }: { purchase: Purc
   const router = useRouter();
 
   useEffect(() => {
-    // Polling cada 10 segundos para actualizar el estado de los paquetes
-    // y la compra si sigue en PAID
-    if (purchase?.status === 'PAID') {
-      const interval = setInterval(() => {
-        router.refresh();
-      }, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [purchase?.status, router]);
+    if (purchase?.status !== 'PAID') return;
+    
+    let es: EventSource;
+    let reconnectTimeout: NodeJS.Timeout;
+
+    const connect = () => {
+      es = new EventSource(`/api/purchases/${purchase.purchase_id}/stream`);
+
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          // Cuando recibimos un evento de actualización de estado, refrescamos la página
+          if (data.type === 'status_update') {
+            router.refresh();
+          }
+        } catch (err) {
+          // Ignorar errores de parseo
+        }
+      };
+
+      es.onerror = () => {
+        es.close();
+        // Si la conexión se corta (ej. Vercel timeout), reconectamos en 3 segundos
+        reconnectTimeout = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      clearTimeout(reconnectTimeout);
+      if (es) es.close();
+    };
+  }, [purchase?.status, purchase?.purchase_id, router]);
 
   if (!purchase) {
     return notFound();
