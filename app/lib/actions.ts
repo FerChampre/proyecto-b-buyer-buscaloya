@@ -13,7 +13,7 @@ import { stringToUuid } from '@/app/lib/utils';
 const UpdateUserSchema = z.object({
   client_id: z.string(),
   email: z.string().email('Formato de email inválido'),
-  name: z.string().min(2).max(100),
+  name: z.string().min(2).max(100).regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo debe contener letras y espacios'),
   phone: z.string().max(20, 'Máximo 20 caracteres').regex(/^\+?[0-9\s]*$/, 'Solo números y espacios permitidos').optional()
 });
 
