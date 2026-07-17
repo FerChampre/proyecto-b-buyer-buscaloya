@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@clerk/nextjs/server';
 import { stringToUuid } from '@/app/lib/utils';
+import { checkRateLimit } from '@/app/lib/ratelimit';
 
 // ------------------------------------------------------------------
 // LÓGICA DE USUARIOS
@@ -32,6 +33,12 @@ export async function updateUserAction(prevState: State | undefined, formData: F
   const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
 
   if (!userId) return { success: false, error: 'No autorizado' };
+
+  // Rate Limiting
+  const rateLimit = await checkRateLimit(`update_user_${userId}`);
+  if (!rateLimit.success) {
+    return { success: false, error: rateLimit.message };
+  }
 
   const parsedData = UpdateUserSchema.safeParse({
     client_id: String(formData.get('client_id')),
@@ -150,6 +157,12 @@ export async function createAddressAction(prevState: State | undefined, formData
   const isAdmin = (authSession.sessionClaims as any)?.metadata?.role === 'system_admin';
 
   if (!userId) return { success: false, error: 'No autorizado' };
+
+  // Rate Limiting
+  const rateLimit = await checkRateLimit(`create_addr_${userId}`);
+  if (!rateLimit.success) {
+    return { success: false, error: rateLimit.message };
+  }
 
   const parsedData = CreateAddressSchema.safeParse({
     client_id: String(formData.get('client_id')),
@@ -275,6 +288,12 @@ export async function sendCartAction({ addressId, items }: { addressId: string; 
     const authRes = await auth();
     const { userId, getToken } = authRes as any;
     if (!userId) throw new Error('Not authenticated');
+
+    // Rate Limiting para evitar Spam de Órdenes
+    const rateLimit = await checkRateLimit(`send_cart_${userId}`);
+    if (!rateLimit.success) {
+      throw new Error(rateLimit.message);
+    }
 
     const token = await getToken();
 
